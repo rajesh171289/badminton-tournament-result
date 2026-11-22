@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Badminton Tournament Results</title>
+  <style>
+    :root {
+      --ink: #1d2433;
+      --muted: #737d8c;
+      --line: #e8ebef;
+      --green: #267552;
+      --green-soft: #f1f7f4;
+      --gold: #a47a35;
+      --gold-soft: #faf6ec;
+      --silver: #87909d;
+      --paper: #ffffff;
+      --canvas: #f7f8fa;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--canvas);
+    }
+    button, input { font: inherit; }
+    .site-header {
+      background: #ffffff;
+      color: var(--ink);
+      border-bottom: 1px solid var(--line);
+      padding: 34px max(20px, calc((100% - 1320px) / 2));
+    }
+    .event-name {
+      min-height: 48px;
+      margin: 0;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+    .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 16px; }
+    main { max-width: 1320px; margin: 0 auto; padding: 28px 20px 70px; }
+    .section-heading { margin: 0 0 15px; font-size: 20px; letter-spacing: -0.01em; }
+    .champions-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .champion-card {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--paper);
+      padding: 14px 16px 12px;
+      cursor: pointer;
+      box-shadow: none;
+      transition: border-color .16s ease, box-shadow .16s ease;
+    }
+    .champion-card:hover {
+      border-color: #ccd3dc;
+      box-shadow: 0 6px 18px rgba(31, 45, 68, 0.06);
+    }
+    .champion-card .division-name {
+      display: block;
+      min-height: 38px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #edf0f3;
+      color: #4c5768;
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 800;
+    }
+    .champion-results {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 7px;
+      padding: 10px 0 9px;
+    }
+    .rank-row {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 7px;
+      align-items: start;
+    }
+    .rank-row + .rank-row { margin-top: 0; }
+    .rank-label { padding-top: 1px; font-size: 13px; line-height: 1; }
+    .rank-row.winner .rank-label { color: var(--gold); }
+    .rank-row.runner .rank-label { color: var(--silver); }
+    .champion-team {
+      display: block;
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+    .champion-player {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+    .final-score {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 29px;
+      padding-top: 8px;
+      border-top: 1px solid #edf0f3;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.2;
+    }
+    .final-score::before {
+      content: "FINAL";
+      color: #9aa2ad;
+      font-size: 9px;
+      letter-spacing: .08em;
+      font-weight: 900;
+    }
+    .nav-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      margin: 0 -20px 16px;
+      padding: 10px 20px;
+      background: rgba(247,248,250,.96);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(221,227,236,.8);
+    }
+    .nav {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .nav button {
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--paper);
+      color: var(--ink);
+      padding: 8px 13px;
+      font-size: 13px;
+      font-weight: 750;
+      cursor: pointer;
+      box-shadow: none;
+    }
+    .nav button.active { background: var(--ink); color: white; border-color: var(--ink); }
+    .division {
+      scroll-margin-top: 72px;
+      margin: 20px 0 24px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper);
+      box-shadow: 0 5px 20px rgba(31,45,68,.04);
+    }
+    .division-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .division-title { margin: 0; font-size: 20px; }
+    .age-chip { color: #526176; background: #f1f3f5; border-radius: 5px; padding: 6px 9px; font-size:12px; font-weight:800; white-space:nowrap; }
+    .bracket-scroll { overflow-x: auto; padding: 4px 2px 8px; }
+    .bracket {
+      min-width: 1020px;
+      display: grid;
+      grid-template-columns: minmax(0, 38fr) minmax(0, 28fr) minmax(0, 34fr);
+      column-gap: 22px;
+      align-items: stretch;
+      position: relative;
+    }
+    .stage { min-width: 0; position: relative; }
+    .stage + .stage { border-left: 1px solid var(--line); padding-left: 22px; }
+    .stage-title {
+      margin: 0 0 9px;
+      color: #718096;
+      font-size: 11px;
+      letter-spacing: .10em;
+      font-weight: 900;
+      text-align: center;
+    }
+    .pool-box {
+      border: 1px solid #dde2e8;
+      border-radius: 8px;
+      background: #fafbfc;
+      padding: 8px;
+      margin: 0 0 10px;
+    }
+    .pool-box:last-child { margin-bottom: 0; }
+    .pool-title { margin: 0 0 8px; color: #738197; font-size: 12px; font-weight: 900; }
+    .match-card {
+      position: relative;
+      border: 1px solid #dde3ec;
+      border-radius: 8px;
+      background: white;
+      box-shadow: none;
+      overflow: hidden;
+      margin-bottom: 7px;
+    }
+    .match-card:last-child { margin-bottom: 0; }
+    .match-header {
+      display:flex; justify-content:space-between; align-items:center;
+      min-height: 25px;
+      padding: 5px 8px;
+      color: #7b8798;
+      font-size: 10px;
+      font-weight: 800;
+      border-bottom: 1px solid #edf0f4;
+    }
+    .match-side {
+      min-height: 48px;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 44px;
+      align-items:center;
+      gap:8px;
+      padding:7px 8px;
+    }
+    .match-side.winner { background: var(--green-soft); color: var(--green); }
+    .match-side.loser { color: var(--ink); }
+    .side-main { min-width:0; }
+    .team-name { display:block; font-weight:850; font-size:12px; line-height:1.25; overflow-wrap:anywhere; }
+    .player-name { display:block; margin-top:3px; color:var(--muted); font-size:10px; line-height:1.25; overflow-wrap:anywhere; }
+    .match-side.winner .player-name { color:#698578; }
+    .side-right { display:flex; align-items:center; justify-content:flex-end; gap:4px; }
+    .score {
+      min-width:32px;
+      height:26px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:5px;
+      background:#f1f3f6;
+      color:var(--ink);
+      font-weight:900;
+      font-size:12px;
+    }
+    .match-side.winner .score { background:#dff3e7; color:var(--green); }
+    .icon { width:12px; text-align:center; font-size:11px; }
+    .badge {
+      border-radius:999px;
+      padding:3px 6px;
+      background:#fff1cc;
+      color:#8a6110;
+      font-size:9px;
+      font-weight:900;
+    }
+    .retired-note { padding:5px 8px 7px; color:#8a6110; background:#fffaf0; font-size:10px; border-top:1px solid #f4ebd1; }
+    .semi-stage, .final-stage { display:flex; flex-direction:column; }
+    .semi-wrap { flex:1; display:flex; flex-direction:column; justify-content:space-evenly; gap:28px; padding:12px 0; }
+    .final-wrap { flex:1; display:flex; flex-direction:column; justify-content:center; padding:12px 0; }
+    .trophy { margin:0 auto 8px; padding:6px 9px; border-radius:5px; background:var(--gold-soft); color:#806027; font-size:11px; font-weight:900; text-align:center; }
+    .pool-stage::after, .semi-stage::after { display:none; }
+    .path { border-color:#48a975 !important; }
+    .match-card.final-card { border-color:#e4ca7e; }
+    @media (max-width: 1000px) {
+      .champions-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width: 767px) {
+      .site-header { padding:28px 16px; }
+      main { padding:18px 12px 50px; }
+      .champions-grid { grid-template-columns:1fr; }
+      .nav-wrap { margin:0 -12px 12px; padding:8px 12px; }
+      .division { padding:12px; border-radius:14px; scroll-margin-top:62px; }
+      .division-header { align-items:flex-start; }
+      .division-title { font-size:17px; }
+      .bracket-scroll { overflow-x:visible; }
+      .bracket {
+        min-width:0;
+        display:flex;
+        flex-direction:column;
+        gap:18px;
+      }
+      .stage + .stage { border-left:0; padding-left:0; }
+      .stage-title { text-align:left; }
+      .pool-box { margin-left:0; margin-right:0; }
+      .semi-wrap { padding:0; gap:10px; }
+      .final-wrap { padding:0; }
+      .pool-stage::after, .semi-stage::after { display:none; }
+    }
+    @media print {
+      body { background:white; }
+      .nav-wrap { display:none; }
+      main { max-width:none; padding:0; }
+      .champions-grid { grid-template-columns:repeat(3,1fr); }
+      .division { break-after:page; box-shadow:none; }
+      .bracket-scroll { overflow:visible; }
+      .bracket { min-width:920px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <h1 class="event-name" id="event-name"></h1>
+    <p class="subtitle">Results &amp; Brackets</p>
+  </header>
+  <main>
+    <h2 class="section-heading">Champions overview</h2>
+    <div class="champions-grid" id="champions"></div>
+    <div class="nav-wrap">
+      <nav class="nav" id="division-nav" aria-label="Division navigation"></nav>
+    </div>
+    <div id="divisions"></div>
+  </main>
+  <script>
+    const TOURNAMENT = {
+      event: "PNB Badminton tournament",
+      divisions: [
+        {
+          id:"a50-ms", ageGroup:"Above 50", category:"Men's Singles",
+          winner:{team:"Team Thiruvananthapuram_SANJAY THOMAS",players:"Sanjay Thomas"},
+          runnerUp:{team:"Team Trichy_K PRABU GIRI PRASAD",players:"K Prabu Giri Prasad"},
+          pools:[
+            {name:"Pool A",matches:[
+              {no:"M#1",stage:"Pool Play",side1:{team:"Team Thiruvananthapuram_SANJAY THOMAS",players:"SANJAY THOMAS",score:15},side2:{team:"Team Chennai_Dhirendra Sashi",players:"Dhirendra Sashi",score:14},winner:1},
+              {no:"M#2",stage:"Pool Play",side1:{team:"Team Ernakulam_Sujit",players:"Sujit",score:"–"},side2:{team:"Team Chennai_Dhirendra Sashi",players:"Dhirendra Sashi",score:"–"},winner:1,result:"walkover",note:"Dhirendra Sashi withdrew after playing one match"},
+              {no:"M#3",stage:"Pool Play",side1:{team:"Team Ernakulam_Sujit",players:"Sujit",score:6},side2:{team:"Team Thiruvananthapuram_SANJAY THOMAS",players:"SANJAY THOMAS",score:15},winner:2}
+            ]},
+            {name:"Pool B",matches:[
+              {no:"M#4",stage:"Pool Play",side1:{team:"Team Trichy_K PRABU GIRI PRASAD",players:"K PRABU GIRI PRASAD",score:15},side2:{team:"Team Kozhikode_K,MUHAMMED RAUOOF",players:"K,MUHAMMED RAUOOF",score:13},winner:1},
+              {no:"M#5",stage:"Pool Play",side1:{team:"Team Coimbatore_Daya Seela Rao",players:"Daya Seela Rao",score:10},side2:{team:"Team Kozhikode_K,MUHAMMED RAUOOF",players:"K,MUHAMMED RAUOOF",score:14},winner:2},
+              {no:"M#6",stage:"Pool Play",side1:{team:"Team Coimbatore_Daya Seela Rao",players:"Daya Seela Rao",score:8},side2:{team:"Team Trichy_K PRABU GIRI PRASAD",players:"K PRABU GIRI PRASAD",score:15},winner:2}
+            ]}
+          ],
+          semifinals:[
+            {no:"M#7",stage:"Semifinal 1",side1:{team:"Team Thiruvananthapuram_SANJAY THOMAS",players:"SANJAY THOMAS",score:15},side2:{team:"Team Kozhikode_K,MUHAMMED RAUOOF",players:"K,MUHAMMED RAUOOF",score:4},winner:1},
+            {no:"M#8",stage:"Semifinal 2",side1:{team:"Team Trichy_K PRABU GIRI PRASAD",players:"K PRABU GIRI PRASAD",score:15},side2:{team:"Team Ernakulam_Sujit",players:"Sujit",score:2},winner:1}
+          ],
+          final:{no:"M#9",stage:"Final",side1:{team:"Team Thiruvananthapuram_SANJAY THOMAS",players:"SANJAY THOMAS",score:15},side2:{team:"Team Trichy_K PRABU GIRI PRASAD",players:"K PRABU GIRI PRASAD",score:11},winner:1}
+        },
+        {
+          id:"a50-ws", ageGroup:"Above 50", category:"Women's Singles",
+          winner:{team:"Team Ernakulam_Toly Jeune",players:"Toly Jeune"},runnerUp:{team:"Team Trichy_UMA ELANGO",players:"Uma Elango"},
+          pools:[
+            {name:"Pool A",matches:[{no:"M#1",stage:"Pool Play",side1:{team:"Team Coimbatore_Pushpinder Kaur Virk",players:"Pushpinder Kaur Virk",score:7},side2:{team:"Team Thiruvananthapuram_RETHY S NAIR",players:"RETHY S NAIR",score:15},winner:2}]},
+            {name:"Pool B",matches:[{no:"M#2",stage:"Pool Play",side1:{team:"Team Ernakulam_Toly Jeune",players:"Toly Jeune",score:15},side2:{team:"Team Trichy_UMA ELANGO",players:"UMA ELANGO",score:7},winner:1}]}
+          ],
+          semifinals:[
+            {no:"M#3",stage:"Semifinal 1",side1:{team:"Team Thiruvananthapuram_RETHY S NAIR",players:"RETHY S NAIR",score:12},side2:{team:"Team Trichy_UMA ELANGO",players:"UMA ELANGO",score:15},winner:2},
+            {no:"M#4",stage:"Semifinal 2",side1:{team:"Team Ernakulam_Toly Jeune",players:"Toly Jeune",score:15},side2:{team:"Team Coimbatore_Pushpinder Kaur Virk",players:"Pushpinder Kaur Virk",score:0},winner:1}
+          ],
+          final:{no:"M#5",stage:"Final",side1:{team:"Team Trichy_UMA ELANGO",players:"UMA ELANGO",score:13},side2:{team:"Team Ernakulam_Toly Jeune",players:"Toly Jeune",score:15},winner:2}
+        },
+        {
+          id:"a50-md", ageGroup:"Above 50", category:"Men's Doubles",
+          winner:{team:"Team Trichy",players:"G Ramkumar & K Prabu Giri Prasad"},runnerUp:{team:"Team Kozhikode",players:"Sakeer Hussain, P K & Vijeesh, V"},
+          pools:[
+            {name:"Pool A",matches:[
+              {no:"M#1",stage:"Pool Play",side1:{team:"Team Ernakulam",players:"P S Rajesh & Sujit kumar",score:10},side2:{team:"Team Thiruvananthapuram",players:"SANJAY THOMAS & SREERAM CHANDRA VARMA",score:21},winner:2},
+              {no:"M#2",stage:"Pool Play",side1:{team:"Team Chennai",players:"Dhirendra Sashi & Manoj Premchand Gajbhiye",score:"–"},side2:{team:"Team Thiruvananthapuram",players:"SANJAY THOMAS & SREERAM CHANDRA VARMA",score:"–"},winner:2,result:"walkover",note:"Dhirendra Sashi withdrew after playing one match"},
+              {no:"M#3",stage:"Pool Play",side1:{team:"Team Chennai",players:"Dhirendra Sashi & Manoj Premchand Gajbhiye",score:17},side2:{team:"Team Ernakulam",players:"P S Rajesh & Sujit kumar",score:20},winner:2}
+            ]},
+            {name:"Pool B",matches:[
+              {no:"M#4",stage:"Pool Play",side1:{team:"Team Kozhikode",players:"SAKEER HUSSAIN,P K & VIJEESH,V",score:3},side2:{team:"Team Trichy",players:"G RAMKUMAR & K PRABU GIRI PRASAD",score:21},winner:2},
+              {no:"M#5",stage:"Pool Play",side1:{team:"Team Coimbatore",players:"Daya Seela Rao & S Palani",score:10},side2:{team:"Team Trichy",players:"G RAMKUMAR & K PRABU GIRI PRASAD",score:21},winner:2},
+              {no:"M#6",stage:"Pool Play",side1:{team:"Team Coimbatore",players:"Daya Seela Rao & S Palani",score:7},side2:{team:"Team Kozhikode",players:"SAKEER HUSSAIN,P K & VIJEESH,V",score:21},winner:2}
+            ]}
+          ],
+          semifinals:[
+            {no:"M#7",stage:"Semifinal 1",side1:{team:"Team Thiruvananthapuram",players:"SANJAY THOMAS & SREERAM CHANDRA VARMA",score:14},side2:{team:"Team Kozhikode",players:"SAKEER HUSSAIN,P K & VIJEESH,V",score:21},winner:2},
+            {no:"M#8",stage:"Semifinal 2",side1:{team:"Team Trichy",players:"G RAMKUMAR & K PRABU GIRI PRASAD",score:21},side2:{team:"Team Ernakulam",players:"P S Rajesh & Sujit kumar",score:4},winner:1}
+          ],
+          final:{no:"M#9",stage:"Final",side1:{team:"Team Kozhikode",players:"SAKEER HUSSAIN,P K & VIJEESH,V",score:13},side2:{team:"Team Trichy",players:"G RAMKUMAR & K PRABU GIRI PRASAD",score:21},winner:2}
+        },
+        {
+          id:"a50-xd", ageGroup:"Above 50", category:"Mixed Doubles",
+          winner:{team:"Team Kozhikode",players:"K, Muhammed Rauoof & Sheela Nair"},runnerUp:{team:"Team Coimbatore",players:"Daya Seela Rao & Pushpinder Kaur Virk"},
+          pools:[
+            {name:"Pool A",matches:[
+              {no:"M#1",stage:"Pool Play",side1:{team:"Team Coimbatore",players:"Daya Seela Rao & Pushpinder Kaur Virk",score:15},side2:{team:"Team Thiruvananthapuram",players:"RETHY S NAIR & SANJAY THOMAS",score:21},winner:2},
+              {no:"M#3",stage:"Pool Play",side1:{team:"Team Kozhikode",players:"K,MUHAMMED RAUOOF & Sheela Nair",score:13},side2:{team:"Team Coimbatore",players:"Daya Seela Rao & Pushpinder Kaur Virk",score:21},winner:2},
+              {no:"M#4",stage:"Pool Play",side1:{team:"Team Kozhikode",players:"K,MUHAMMED RAUOOF & Sheela Nair",score:21},side2:{team:"Team Thiruvananthapuram",players:"RETHY S NAIR & SANJAY THOMAS",score:12},winner:1}
+            ]},
+            {name:"Pool B",matches:[{no:"M#2",stage:"Pool Play",side1:{team:"Team Ernakulam",players:"Sujit & Toly Jeune",score:16},side2:{team:"Team Trichy",players:"G RAMKUMAR & UMA ELANGO",score:21},winner:2}]}
+          ],
+          semifinals:[
+            {no:"M#5",stage:"Semifinal 1",side1:{team:"Team Coimbatore",players:"Daya Seela Rao & Pushpinder Kaur Virk",score:21},side2:{team:"Team Ernakulam",players:"Sujit & Toly Jeune",score:14},winner:1},
+            {no:"M#6",stage:"Semifinal 2",side1:{team:"Team Trichy",players:"G RAMKUMAR & UMA ELANGO",score:12},side2:{team:"Team Kozhikode",players:"K,MUHAMMED RAUOOF & Sheela Nair",score:21},winner:2}
+          ],
+          final:{no:"M#7",stage:"Final",side1:{team:"Team Coimbatore",players:"Daya Seela Rao & Pushpinder Kaur Virk",score:15},side2:{team:"Team Kozhikode",players:"K,MUHAMMED RAUOOF & Sheela Nair",score:21},winner:2}
+        },
+        {
+          id:"b50-ms", ageGroup:"Below 50", category:"Men's Singles",
+          winner:{team:"Team Chennai_ILAVARASAN",players:"Ilavarasan"},runnerUp:{team:"Team Trichy_NIVEDHAN B",players:"Nivedhan B"},
+          pools:[
+            {name:"Pool A",matches:[
+              {no:"M#1",stage:"Pool Play",side1:{team:"Team Ernakulam_Suresh R",players:"Suresh R",score:13},side2:{team:"Team Thiruvananthapuram_ADARSH MOHAN",players:"ADARSH MOHAN",score:15},winner:2},
+              {no:"M#2",stage:"Pool Play",side1:{team:"Team Chennai_ILAVARASAN",players:"ILAVARASAN",score:15},side2:{team:"Team Thiruvananthapuram_ADARSH MOHAN",players:"ADARSH MOHAN",score:3},winner:1},
+              {no:"M#3",stage:"Pool Play",side1:{team:"Team Chennai_ILAVARASAN",players:"ILAVARASAN",score:15},side2:{team:"Team Ernakulam_Suresh R",players:"Suresh R",score:7},winner:1}
+            ]},
+            {name:"Pool B",matches:[
+              {no:"M#4",stage:"Pool Play",side1:{team:"Team Kozhikode_KP,ASAMS",players:"KP,ASAMS",score:5},side2:{team:"Team Trichy_NIVEDHAN B",players:"NIVEDHAN B",score:15},winner:2},
+              {no:"M#5",stage:"Pool Play",side1:{team:"Team Coimbatore_Mohan Kumar A",players:"Mohan Kumar A",score:10},side2:{team:"Team Trichy_NIVEDHAN B",players:"NIVEDHAN B",score:15},winner:2},
+              {no:"M#6",stage:"Pool Play",side1:{team:"Team Coimbatore_Mohan Kumar A",players:"Mohan Kumar A",score:15},side2:{team:"Team Kozhikode_KP,ASAMS",players:"KP,ASAMS",score:7},winner:1}
+            ]}
+          ],
+          semifinals:[
+            {no:"M#7",stage:"Semifinal 1",side1:{team:"Team Chennai_ILAVARASAN",players:"ILAVARASAN",score:15},side2:{team:"Team Coimbatore_Mohan Kumar A",players:"Mohan Kumar A",score:5},winner:1},
+            {no:"M#8",stage:"Semifinal 2",side1:{team:"Team Trichy_NIVEDHAN B",players:"NIVEDHAN B",score:15},side2:{team:"Team Thiruvananthapuram_ADARSH MOHAN",players:"ADARSH MOHAN",score:6},winner:1}
+          ],
+          final:{no:"M#9",stage:"Final",side1:{team:"Team Chennai_ILAVARASAN",players:"ILAVARASAN",score:8},side2:{team:"Team Trichy_NIVEDHAN B",players:"NIVEDHAN B",score:8},winner:1,result:"retired",note:"Nivedhan B was injured at 8–8 and forfeited the match"}
+        },
+        {
+          id:"b50-ws", ageGroup:"Below 50", category:"Women's Singles",
+          winner:{team:"Team Ernakulam_Helen M Jacob",players:"Helen M Jacob"},runnerUp:{team:"Team Thiruvananthapuram_ARYA S NAIR",players:"Arya S Nair"},
+          pools:[
+            {name:"Pool A",matches:[
+              {no:"M#1",stage:"Pool Play",side1:{team:"Team Ernakulam_Helen M Jacob",players:"Helen M Jacob",score:15},side2:{team:"Team Thiruvananthapuram_ARYA S NAIR",players:"ARYA S NAIR",score:2},winner:1},
+              {no:"M#2",stage:"Pool Play",side1:{team:"Team Chennai_SCENARY DEBARMA",players:"SCENARY DEBARMA",score:11},side2:{team:"Team Thiruvananthapuram_ARYA S NAIR",players:"ARYA S NAIR",score:15},winner:2},
+              {no:"M#3",stage:"Pool Play",side1:{team:"Team Chennai_SCENARY DEBARMA",players:"SCENARY DEBARMA",score:3},side2:{team:"Team Ernakulam_Helen M Jacob",players:"Helen M Jacob",score:15},winner:2}
+            ]},
+            {name:"Pool B",matches:[
+              {no:"M#4",stage:"Pool Play",side1:{team:"Team Kozhikode_SHINJU,C",players:"SHINJU,C",score:15},side2:{team:"Team Trichy_J PRISCILLA JOHNY ALICE",players:"J PRISCILLA JOHNY ALICE",score:12},winner:1},
+              {no:"M#5",stage:"Pool Play",side1:{team:"Team Coimbatore_Abirami S",players:"Abirami S",score:15},side2:{team:"Team Trichy_J PRISCILLA JOHNY ALICE",players:"J PRISCILLA JOHNY ALICE",score:9},winner:1},
+              {no:"M#6",stage:"Pool Play",side1:{team:"Team Coimbatore_Abirami S",players:"Abirami S",score:15},side2:{team:"Team Kozhikode_SHINJU,C",players:"SHINJU,C",score:9},winner:1}
+            ]}
+          ],
+          semifinals:[
+            {no:"M#7",stage:"Semifinal 1",side1:{team:"Team Ernakulam_Helen M Jacob",players:"Helen M Jacob",score:15},side2:{team:"Team Kozhikode_SHINJU,C",players:"SHINJU,C",score:0},winner:1},
+            {no:"M#8",stage:"Semifinal 2",side1:{team:"Team Coimbatore_Abirami S",players:"Abirami S",score:7},side2:{team:"Team Thiruvananthapuram_ARYA S NAIR",players:"ARYA S NAIR",score:15},winner:2}
+          ],
+          final:{no:"M#9",stage:"Final",side1:{team:"Team Ernakulam_Helen M Jacob",players:"Helen M Jacob",score:15},side2:{team:"Team Thiruvananthapuram_ARYA S NAIR",players:"ARYA S NAIR",score:3},winner:1}
+        },
+        {
+          id:"b50-md", ageGroup:"Below 50", category:"Men's Doubles",
+          winner:{team:"Team Chennai",players:"Ilavarasan & Arun Prasad"},runnerUp:{team:"Team Ernakulam",players:"Mahesh P Pai & Murali Krishnan VP"},
+          pools:[
+            {name:"Pool A",matches:[
+              {no:"M#1",stage:"Pool Play",side1:{team:"Team Ernakulam",players:"Mahesh P Pai & Murali Krishnan VP",score:21},side2:{team:"Team Thiruvananthapuram",players:"ABHIJITH S & ADARSH MOHAN",score:16},winner:1},
+              {no:"M#2",stage:"Pool Play",side1:{team:"Team Chennai",players:"ILAVARASAN & ARUN PRASAD",score:21},side2:{team:"Team Thiruvananthapuram",players:"ABHIJITH S & ADARSH MOHAN",score:12},winner:1},
+              {no:"M#3",stage:"Pool Play",side1:{team:"Team Chennai",players:"ILAVARASAN & ARUN PRASAD",score:21},side2:{team:"Team Ernakulam",players:"Mahesh P Pai & Murali Krishnan VP",score:12},winner:1}
+            ]},
+            {name:"Pool B",matches:[
+              {no:"M#4",stage:"Pool Play",side1:{team:"Team Kozhikode",players:"SATHISH,M & SARAT KUMAR,P",score:20},side2:{team:"Team Trichy",players:"V THAMILARASAN & VENKADESH K",score:21},winner:2},
+              {no:"M#5",stage:"Pool Play",side1:{team:"Team Coimbatore",players:"Mohankumar A & Ravi Kumar",score:16},side2:{team:"Team Trichy",players:"V THAMILARASAN & VENKADESH K",score:21},winner:2},
+              {no:"M#6",stage:"Pool Play",side1:{team:"Team Coimbatore",players:"Mohankumar A & Ravi Kumar",score:18},side2:{team:"Team Kozhikode",players:"SATHISH,M & SARAT KUMAR,P",score:21},winner:2}
+            ]}
+          ],
+          semifinals:[
+            {no:"M#7",stage:"Semifinal 1",side1:{team:"Team Chennai",players:"ILAVARASAN & ARUN PRASAD",score:21},side2:{team:"Team Kozhikode",players:"SATHISH,M & SARAT KUMAR,P",score:13},winner:1},
+            {no:"M#8",stage:"Semifinal 2",side1:{team:"Team Trichy",players:"V THAMILARASAN & VENKADESH K",score:17},side2:{team:"Team Ernakulam",players:"Mahesh P Pai & Murali Krishnan VP",score:21},winner:2}
+          ],
+          final:{no:"M#9",stage:"Final",side1:{team:"Team Chennai",players:"ILAVARASAN & ARUN PRASAD",score:21},side2:{team:"Team Ernakulam",players:"Mahesh P Pai & Murali Krishnan VP",score:11},winner:1}
+        },
+        {
+          id:"b50-wd", ageGroup:"Below 50", category:"Women's Doubles",
+          winner:{team:"Team Ernakulam",players:"Anusree K & Helen"},runnerUp:{team:"Team Thiruvananthapuram",players:"Diya T & Arya S Nair"},
+          pools:[
+            {name:"Pool A",matches:[
+              {no:"M#1",stage:"Pool Play",side1:{team:"Team Ernakulam",players:"Anusree K & Helen",score:21},side2:{team:"Team Thiruvananthapuram",players:"DIYA T & ARYA S NAIR",score:13},winner:1},
+              {no:"M#2",stage:"Pool Play",side1:{team:"Team Chennai",players:"SCENARY DEBARMA & PADMASHREE",score:3},side2:{team:"Team Thiruvananthapuram",players:"DIYA T & ARYA S NAIR",score:21},winner:2},
+              {no:"M#3",stage:"Pool Play",side1:{team:"Team Chennai",players:"SCENARY DEBARMA & PADMASHREE",score:8},side2:{team:"Team Ernakulam",players:"Anusree K & Helen",score:21},winner:2}
+            ]},
+            {name:"Pool B",matches:[{no:"M#4",stage:"Pool Play",side1:{team:"Team Coimbatore",players:"Lalithamani & Abirami S",score:21},side2:{team:"Team Kozhikode",players:"SHINJU,C & ANJANARAJ",score:19},winner:1}]}
+          ],
+          semifinals:[
+            {no:"M#5",stage:"Semifinal 1",side1:{team:"Team Ernakulam",players:"Anusree K & Helen",score:21},side2:{team:"Team Kozhikode",players:"SHINJU,C & ANJANARAJ",score:4},winner:1},
+            {no:"M#6",stage:"Semifinal 2",side1:{team:"Team Coimbatore",players:"Lalithamani & Abirami S",score:10},side2:{team:"Team Thiruvananthapuram",players:"DIYA T & ARYA S NAIR",score:21},winner:2}
+          ],
+          final:{no:"M#7",stage:"Final",side1:{team:"Team Ernakulam",players:"Anusree K & Helen",score:21},side2:{team:"Team Thiruvananthapuram",players:"DIYA T & ARYA S NAIR",score:8},winner:1}
+        },
+        {
+          id:"b50-xd", ageGroup:"Below 50", category:"Mixed Doubles",
+          winner:{team:"Team Ernakulam",players:"Helen M Jacob & Murali Krishnan VP"},runnerUp:{team:"Team Chennai",players:"Scenary Debarma & Logeshwaran"},
+          pools:[
+            {name:"Pool A",matches:[
+              {no:"M#1",stage:"Pool Play",side1:{team:"Team Ernakulam",players:"Helen M Jacob & Murali Krishnan VP",score:21},side2:{team:"Team Thiruvananthapuram",players:"DIYA T & SANU-N.V",score:9},winner:1},
+              {no:"M#2",stage:"Pool Play",side1:{team:"Team Chennai",players:"SCENARY DEBARMA & LOGESHWARAN",score:21},side2:{team:"Team Thiruvananthapuram",players:"DIYA T & SANU-N.V",score:20},winner:1},
+              {no:"M#3",stage:"Pool Play",side1:{team:"Team Chennai",players:"SCENARY DEBARMA & LOGESHWARAN",score:6},side2:{team:"Team Ernakulam",players:"Helen M Jacob & Murali Krishnan VP",score:21},winner:2}
+            ]},
+            {name:"Pool B",matches:[{no:"M#4",stage:"Pool Play",side1:{team:"Team Coimbatore",players:"Abirami S & Mohan Kumar A",score:21},side2:{team:"Team Kozhikode",players:"M,ASWATHY & SARAT KUMAR,P",score:14},winner:1}]}
+          ],
+          semifinals:[
+            {no:"M#5",stage:"Semifinal 1",side1:{team:"Team Ernakulam",players:"Helen M Jacob & Murali Krishnan VP",score:21},side2:{team:"Team Kozhikode",players:"M,ASWATHY & SARAT KUMAR,P",score:10},winner:1},
+            {no:"M#6",stage:"Semifinal 2",side1:{team:"Team Coimbatore",players:"Abirami S & Mohan Kumar A",score:16},side2:{team:"Team Chennai",players:"SCENARY DEBARMA & LOGESHWARAN",score:21},winner:2}
+          ],
+          final:{no:"M#7",stage:"Final",side1:{team:"Team Ernakulam",players:"Helen M Jacob & Murali Krishnan VP",score:21},side2:{team:"Team Chennai",players:"SCENARY DEBARMA & LOGESHWARAN",score:11},winner:1}
+        }
+      ]
+    };
+
+    const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" }[char]));
+
+    function matchCard(match) {
+      const badge = match.result === "walkover" ? '<span class="badge" title="Walkover">W/O</span>' :
+                    match.result === "retired" ? '<span class="badge" title="Retired – injured">Ret. – injured</span>' : "";
+      const side = (side, number) => {
+        const won = match.winner === number;
+        return `<div class="match-side ${won ? "winner" : "loser"}">
+          <div class="side-main">
+            <span class="team-name">${escapeHTML(side.team)}</span>
+            <span class="player-name">${escapeHTML(side.players)}</span>
+          </div>
+          <div class="side-right">
+            ${won ? '<span class="icon" title="Winner">👍</span>' : '<span class="icon" title="Loser">👎</span>'}
+            <span class="score">${escapeHTML(side.score)}</span>
+          </div>
+        </div>`;
+      };
+      return `<article class="match-card${match.stage === "Final" ? " final-card" : ""}" title="${match.note ? escapeHTML(match.note) : ""}">
+        <div class="match-header"><span>${escapeHTML(match.no)} (${escapeHTML(match.stage === "Pool Play" ? "Pool Play" : match.stage)})</span>${badge}</div>
+        ${side(match.side1,1)}
+        ${side(match.side2,2)}
+        ${match.note ? `<div class="retired-note">${escapeHTML(match.note)}</div>` : ""}
+      </article>`;
+    }
+
+    function finalScore(match) {
+      if (match.result === "retired") return "8 – 8, opponent retired injured";
+      if (match.result === "walkover") return "Walkover";
+      return `${match.side1.score} – ${match.side2.score}`;
+    }
+
+    document.getElementById("event-name").textContent = TOURNAMENT.event;
+    const champions = document.getElementById("champions");
+    const nav = document.getElementById("division-nav");
+    const divisions = document.getElementById("divisions");
+
+    TOURNAMENT.divisions.forEach((division, index) => {
+      const card = document.createElement("button");
+      card.className = "champion-card";
+      card.dataset.target = division.id;
+      card.innerHTML = `
+        <span class="division-name">${escapeHTML(division.ageGroup)} · ${escapeHTML(division.category)}</span>
+        <div class="champion-results">
+          <div class="rank-row winner">
+            <span class="rank-label">🥇</span>
+            <span><span class="champion-team">${escapeHTML(division.winner.team)}</span><span class="champion-player">${escapeHTML(division.winner.players)}</span></span>
+          </div>
+          <div class="rank-row runner">
+            <span class="rank-label">🥈</span>
+            <span><span class="champion-team">${escapeHTML(division.runnerUp.team)}</span><span class="champion-player">${escapeHTML(division.runnerUp.players)}</span></span>
+          </div>
+        </div>
+        <span class="final-score">${escapeHTML(finalScore(division.final))}</span>`;
+      card.addEventListener("click", () => document.getElementById(division.id).scrollIntoView({block:"start"}));
+      champions.appendChild(card);
+
+      const navButton = document.createElement("button");
+      navButton.textContent = `${division.ageGroup} · ${division.category}`;
+      navButton.dataset.target = division.id;
+      navButton.addEventListener("click", () => document.getElementById(division.id).scrollIntoView({block:"start"}));
+      nav.appendChild(navButton);
+
+      const section = document.createElement("section");
+      section.className = "division";
+      section.id = division.id;
+      section.innerHTML = `
+        <div class="division-header">
+          <h2 class="division-title">${escapeHTML(division.ageGroup)} · ${escapeHTML(division.category)}</h2>
+          <span class="age-chip">${escapeHTML(division.ageGroup)}</span>
+        </div>
+        <div class="bracket-scroll">
+          <div class="bracket">
+            <div class="stage pool-stage">
+              <h3 class="stage-title">GROUP STAGE</h3>
+              ${division.pools.map(pool => `<div class="pool-box"><h4 class="pool-title">${escapeHTML(pool.name)}</h4>${pool.matches.map(matchCard).join("")}</div>`).join("")}
+            </div>
+            <div class="stage semi-stage">
+              <h3 class="stage-title">SEMI-FINALS</h3>
+              <div class="semi-wrap">${division.semifinals.map(matchCard).join("")}</div>
+            </div>
+            <div class="stage final-stage">
+              <h3 class="stage-title">FINAL / 1ST PLACE</h3>
+              <div class="final-wrap">
+                <div class="trophy">🏆 ${escapeHTML(division.winner.team)}</div>
+                ${matchCard(division.final)}
+              </div>
+            </div>
+          </div>
+        </div>`;
+      divisions.appendChild(section);
+    });
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          nav.querySelectorAll("button").forEach(button => button.classList.toggle("active", button.dataset.target === entry.target.id));
+        }
+      });
+    }, {rootMargin:"-20% 0px -65% 0px", threshold:0});
+    document.querySelectorAll(".division").forEach(section => observer.observe(section));
+  </script>
+</body>
+</html>
